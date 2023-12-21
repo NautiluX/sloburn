@@ -4,15 +4,15 @@ SLO Burn is the missing abstraction layer to simplify and solidify the creation 
 
 Turn your error budget alerts into Go code and never care about the details again.
 
-# SLO Definition
+## SLO Definition
 
 Define a Service Level Objective (SLO) using Go code by setting a target availability and the input PromQL formula that calculates the SLI.
 
-# Multiwindow Multi-Burn-Rate Alerts
+## Multiwindow Multi-Burn-Rate Alerts
 
 That's what SLO Burn will generate for you. It's most likely non-readable PromQL which is why you won't want to craft it by hand.
 
-# Example of a Generated Set of Alerts
+## Example of a Generated Set of Alerts
 
 See example/burnalert. Current state:
 
@@ -131,7 +131,7 @@ Output:
 
 ```
 
-# Example: Deploying Alerts to Kubernetes Directly
+## Example: Deploying Alerts to Kubernetes Directly
 
 Prerequisite is a installed Cluster Monitoring Operator (e.g. using an OpenShift cluster).
 
