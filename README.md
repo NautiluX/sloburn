@@ -32,10 +32,17 @@ const queryGood string = "sum(rate(apiserver_request_total{job=\"kube-apiserver\
 const queryValid string = "sum(rate(apiserver_request_total{job=\"kube-apiserver\"}[" + WindowPlaceHolder + "]))"
 
 func main() {
-	alert := sloburn.NewBurnAlert("APIServerAvailability", queryGood, queryValid, 99.0, map[string]string{"prometheus": "prometheus-k8s"})
-	alert.SetWindowPlaceholder(WindowPlaceHolder)
-	fmt.Println(alert.CompilePrometheusRule())
+	alert := sloburn.NewBurnAlert(
+		"APIServerAvailability",
+		queryGood,
+		queryValid,
+		99.0,
+		map[string]string{"prometheus": "prometheus-k8s"},
+	)
+	alert.AddAlertLabels(map[string]string{"service": "API Server"})
+	fmt.Println(alert.CompilePrometheusRuleString())
 }
+
 ```
 
 Output:
@@ -46,7 +53,10 @@ Output:
   "apiVersion": "monitoring.coreos.com/v1",
   "metadata": {
     "name": "APIServerAvailability",
-    "creationTimestamp": null
+    "creationTimestamp": null,
+    "labels": {
+      "prometheus": "prometheus-k8s"
+    }
   },
   "spec": {
     "groups": [
@@ -55,11 +65,14 @@ Output:
         "rules": [
           {
             "alert": "SLOBurnAPIServerAvailabilityCritical",
-            "expr": "sum(rate(apiserver_request_total{job=\"kube-apiserver\", code=~\"5..\"}[1h]))/sum(rate(apiserver_request_total{job=\"kube-apiserver\"}[1h])) \u003e (14.4*0.010) and sum(rate(apiserver_request_total{job=\"kube-apiserver\", code=~\"5..\"}[5m]))/sum(rate(apiserver_request_total{job=\"kube-apiserver\"}[5m])) \u003e (14.4*0.010)",
+            "expr": "sum(rate(apiserver_request_total{job=\"kube-apiserver\", code=~\"5..\"}[5m]))/sum(rate(apiserver_request_total{job=\"kube-apiserver\"}[5m])) \u003e 0.010 and sum(rate(apiserver_request_total{job=\"kube-apiserver\", code=~\"5..\"}[1h]))/sum(rate(apiserver_request_total{job=\"kube-apiserver\"}[1h])) \u003e 0.010",
             "for": "5m",
             "labels": {
-              "service": "APIServerAvailability",
-              "severity": "critical"
+              "longWindow": "1h",
+              "prometheusrule": "APIServerAvailability",
+              "service": "API Server",
+              "severity": "critical",
+              "shortWindow": "5m"
             },
             "annotations": {
               "message": "High error budget burn for APIServerAvailability over the past 1h and 5m (current value: {{ $value }})"
@@ -67,11 +80,14 @@ Output:
           },
           {
             "alert": "SLOBurnAPIServerAvailabilityCritical",
-            "expr": "sum(rate(apiserver_request_total{job=\"kube-apiserver\", code=~\"5..\"}[6h]))/sum(rate(apiserver_request_total{job=\"kube-apiserver\"}[6h])) \u003e (6*0.010) and sum(rate(apiserver_request_total{job=\"kube-apiserver\", code=~\"5..\"}[30m]))/sum(rate(apiserver_request_total{job=\"kube-apiserver\"}[30m])) \u003e (6*0.010)",
+            "expr": "sum(rate(apiserver_request_total{job=\"kube-apiserver\", code=~\"5..\"}[30m]))/sum(rate(apiserver_request_total{job=\"kube-apiserver\"}[30m])) \u003e 0.010 and sum(rate(apiserver_request_total{job=\"kube-apiserver\", code=~\"5..\"}[6h]))/sum(rate(apiserver_request_total{job=\"kube-apiserver\"}[6h])) \u003e 0.010",
             "for": "5m",
             "labels": {
-              "service": "APIServerAvailability",
-              "severity": "critical"
+              "longWindow": "6h",
+              "prometheusrule": "APIServerAvailability",
+              "service": "API Server",
+              "severity": "critical",
+              "shortWindow": "30m"
             },
             "annotations": {
               "message": "High error budget burn for APIServerAvailability over the past 6h and 30m(current value: {{ $value }})"
@@ -79,11 +95,14 @@ Output:
           },
           {
             "alert": "SLOBurnAPIServerAvailabilityWarning",
-            "expr": "sum(rate(apiserver_request_total{job=\"kube-apiserver\", code=~\"5..\"}[24h]))/sum(rate(apiserver_request_total{job=\"kube-apiserver\"}[24h])) \u003e (3*0.010) and sum(rate(apiserver_request_total{job=\"kube-apiserver\", code=~\"5..\"}[3h]))/sum(rate(apiserver_request_total{job=\"kube-apiserver\"}[3h])) \u003e (3*0.010)",
+            "expr": "sum(rate(apiserver_request_total{job=\"kube-apiserver\", code=~\"5..\"}[3h]))/sum(rate(apiserver_request_total{job=\"kube-apiserver\"}[3h])) \u003e 0.010 and sum(rate(apiserver_request_total{job=\"kube-apiserver\", code=~\"5..\"}[24h]))/sum(rate(apiserver_request_total{job=\"kube-apiserver\"}[24h])) \u003e 0.010",
             "for": "1h",
             "labels": {
-              "service": "APIServerAvailability",
-              "severity": "warning"
+              "longWindow": "24h",
+              "prometheusrule": "APIServerAvailability",
+              "service": "API Server",
+              "severity": "warning",
+              "shortWindow": "3h"
             },
             "annotations": {
               "message": "Moderate error budget burn for APIServerAvailability over the past 24h and 3h(current value: {{ $value }})"
@@ -91,11 +110,14 @@ Output:
           },
           {
             "alert": "SLOBurnAPIServerAvailabilityWarning",
-            "expr": "sum(rate(apiserver_request_total{job=\"kube-apiserver\", code=~\"5..\"}[3d]))/sum(rate(apiserver_request_total{job=\"kube-apiserver\"}[3d])) \u003e 0.010 and sum(rate(apiserver_request_total{job=\"kube-apiserver\", code=~\"5..\"}[6h]))/sum(rate(apiserver_request_total{job=\"kube-apiserver\"}[6h])) \u003e 0.010",
+            "expr": "sum(rate(apiserver_request_total{job=\"kube-apiserver\", code=~\"5..\"}[6h]))/sum(rate(apiserver_request_total{job=\"kube-apiserver\"}[6h])) \u003e 0.010 and sum(rate(apiserver_request_total{job=\"kube-apiserver\", code=~\"5..\"}[3d]))/sum(rate(apiserver_request_total{job=\"kube-apiserver\"}[3d])) \u003e 0.010",
             "for": "1h",
             "labels": {
-              "service": "APIServerAvailability",
-              "severity": "warning"
+              "longWindow": "3d",
+              "prometheusrule": "APIServerAvailability",
+              "service": "API Server",
+              "severity": "warning",
+              "shortWindow": "6h"
             },
             "annotations": {
               "message": "Moderate error budget burn for APIServerAvailability over the past 6h and 3d (current value: {{ $value }})"
