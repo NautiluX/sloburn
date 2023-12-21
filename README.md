@@ -8,11 +8,11 @@ Turn your error budget alerts into Go code and never care about the details agai
 
 Define a Service Level Objective (SLO) using Go code by setting a target availability and the input PromQL formula that calculates the SLI.
 
-# Multiwindow multi-burn-rate alerts
+# Multiwindow Multi-Burn-Rate Alerts
 
 That's what SLO Burn will generate for you. It's most likely non-readable PromQL which is why you won't want to craft it by hand.
 
-# Example
+# Example of a Generated Set of Alerts
 
 See example/burnalert. Current state:
 
@@ -130,3 +130,40 @@ Output:
 }
 
 ```
+
+# Example: Deploying Alerts to Kubernetes Directly
+
+Prerequisite is a installed Cluster Monitoring Operator (e.g. using an OpenShift cluster).
+
+See example/client-go. Current state:
+
+Go code:
+
+```
+package main
+
+import (
+	"github.com/NautiluX/sloburn"
+)
+
+const WindowPlaceHolder string = ":window:"
+const queryGood string = "sum(rate(apiserver_request_total{job=\"kube-apiserver\", code=~\"5..\"}[" + WindowPlaceHolder + "]))"
+const queryValid string = "sum(rate(apiserver_request_total{job=\"kube-apiserver\"}[" + WindowPlaceHolder + "]))"
+
+func main() {
+	alert := sloburn.NewBurnAlert(
+		"APIServerAvailability",
+		queryGood,
+		queryValid,
+		99.0,
+		map[string]string{"prometheus": "k8s"},
+	)
+	alert.AddAlertLabels(map[string]string{"service": "API Server"})
+	alert.SetNamespace("openshift-monitoring")
+	sloburn.CreateAlertsKube(&alert)
+}
+```
+
+Screenshot from OpenShift console:
+
+![OpenShift console](doc/img/console.png)

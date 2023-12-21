@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"maps"
+	"runtime/debug"
 	"strings"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -22,6 +23,10 @@ type BurnAlert struct {
 	WindowPlaceHolder    string
 	PrometheusRuleLabels map[string]string
 	AlertLabels          map[string]string
+}
+
+func (a BurnAlert) GetNamespace() string {
+	return a.Namespace
 }
 
 func (a *BurnAlert) SetNamespace(namespace string) {
@@ -43,9 +48,9 @@ func (a *BurnAlert) CompilePrometheusRule() monitoringv1.PrometheusRule {
 			Kind:       "PrometheusRule",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      a.Name,
+			Name:      strings.ToLower(a.Name),
 			Namespace: a.Namespace,
-			Labels:    a.PrometheusRuleLabels,
+			Labels:    mergeLabels(a.PrometheusRuleLabels, map[string]string{"sloburn.org/commit": getCommitHash()}),
 		},
 		Spec: monitoringv1.PrometheusRuleSpec{
 			Groups: []monitoringv1.RuleGroup{
@@ -155,4 +160,15 @@ func mergeLabels(m1, m2 map[string]string) map[string]string {
 	maps.Copy(l, m1)
 	maps.Copy(l, m2)
 	return l
+}
+
+func getCommitHash() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" {
+				return setting.Value
+			}
+		}
+	}
+	return "NA"
 }

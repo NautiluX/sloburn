@@ -2,6 +2,7 @@ package sloburn
 
 import (
 	"github.com/NautiluX/sloburn/alert"
+	"github.com/NautiluX/sloburn/kube"
 )
 
 func NewBurnAlert(name string, queryGood string, queryValid string, slo float64, labels map[string]string) alert.BurnAlert {
@@ -14,4 +15,8 @@ func NewBurnAlert(name string, queryGood string, queryValid string, slo float64,
 		AlertLabels:          map[string]string{},
 		WindowPlaceHolder:    ":window:",
 	}
+}
+
+func CreateAlertsKube(a kube.SLOAlert) {
+	kube.CreateAlerts(a)
 }
