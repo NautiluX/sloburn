@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
@@ -21,6 +23,7 @@ type SLOAlert interface {
 	CompilePrometheusRule() monitoringv1.PrometheusRule
 	CompilePrometheusRuleString() string
 	GetNamespace() string
+	GetName() string
 }
 
 func initKubeClient() *dynamic.DynamicClient {
@@ -75,5 +78,60 @@ func CreateAlerts(a SLOAlert) {
 	}
 
 	fmt.Printf("PrometheusRule created: %v", res)
+}
 
+func UpsertAlerts(a SLOAlert) {
+	client := initKubeClient()
+
+	prometheusRule := a.CompilePrometheusRule()
+
+	res, err := client.Resource(monitoringv1.SchemeGroupVersion.WithResource("prometheusrules")).Namespace(a.GetNamespace()).
+		Get(context.Background(), prometheusRule.GetName(), metav1.GetOptions{})
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			CreateAlerts(a)
+			return
+		}
+		panic(err)
+	}
+
+	existingPrometheusRuleJson, err := json.Marshal(res)
+	if err != nil {
+		panic(err)
+	}
+
+	existingPrometheusRule := monitoringv1.PrometheusRule{}
+	json.Unmarshal(existingPrometheusRuleJson, &existingPrometheusRule)
+
+	if !prometheusRuleNeedsUpdate(existingPrometheusRule, prometheusRule) {
+		fmt.Println("PrometheusRule up to date.")
+		return
+	}
+	fmt.Println("PrometheusRule needs an update.")
+
+	unstructuredPrometheusRule := unstructured.Unstructured{}
+	json.Unmarshal(([]byte)(a.CompilePrometheusRuleString()), &unstructuredPrometheusRule)
+	err = client.Resource(monitoringv1.SchemeGroupVersion.WithResource("prometheusrules")).Namespace(a.GetNamespace()).
+		Delete(context.Background(), prometheusRule.GetName(), metav1.DeleteOptions{})
+	fmt.Println("PrometheusRule deleted.")
+
+	if err != nil {
+		panic(err)
+	}
+
+	CreateAlerts(a)
+}
+
+func prometheusRuleNeedsUpdate(old, new monitoringv1.PrometheusRule) bool {
+
+	if old.Labels["sloburn.org/version"] != new.Labels["sloburn.org/version"] {
+		return true
+	}
+
+	if !reflect.DeepEqual(old.Spec.Groups[0], new.Spec.Groups[0]) {
+		return true
+	}
+
+	return false
 }

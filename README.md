@@ -160,7 +160,7 @@ func main() {
 	)
 	alert.AddAlertLabels(map[string]string{"service": "API Server"})
 	alert.SetNamespace("openshift-monitoring")
-	sloburn.CreateAlertsKube(&alert)
+	sloburn.UpsertAlertsKube(&alert)
 }
 ```
 

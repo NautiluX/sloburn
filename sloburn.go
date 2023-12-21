@@ -17,6 +17,6 @@ func NewBurnAlert(name string, queryGood string, queryValid string, slo float64,
 	}
 }
 
-func CreateAlertsKube(a kube.SLOAlert) {
-	kube.CreateAlerts(a)
+func UpsertAlertsKube(a kube.SLOAlert) {
+	kube.UpsertAlerts(a)
 }

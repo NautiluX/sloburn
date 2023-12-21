@@ -29,6 +29,10 @@ func (a BurnAlert) GetNamespace() string {
 	return a.Namespace
 }
 
+func (a BurnAlert) GetName() string {
+	return a.Name
+}
+
 func (a *BurnAlert) SetNamespace(namespace string) {
 	a.Namespace = namespace
 }
