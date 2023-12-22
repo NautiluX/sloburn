@@ -66,6 +66,26 @@ func getLocalKubeconfig() string {
 
 }
 
+func DeleteAlerts(a SLOAlert) {
+	client := initKubeClient()
+
+	prometheusRule, err := getPrometheusRule(a)
+
+	if err != nil {
+		fmt.Printf("Failed to get prometheusrule for alert %s, skipping removal: %v", a.GetName(), err)
+		return
+	}
+
+	err = client.Resource(monitoringv1.SchemeGroupVersion.WithResource("prometheusrules")).Namespace(a.GetNamespace()).
+		Delete(context.Background(), prometheusRule.GetName(), metav1.DeleteOptions{})
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("PrometheusRule removed: %v", prometheusRule.GetName())
+}
+
 func CreateAlerts(a SLOAlert) {
 	client := initKubeClient()
 	unstructuredPrometheusRule := unstructured.Unstructured{}
@@ -80,29 +100,39 @@ func CreateAlerts(a SLOAlert) {
 	fmt.Printf("PrometheusRule created: %v", res)
 }
 
-func UpsertAlerts(a SLOAlert) {
+func getPrometheusRule(a SLOAlert) (monitoringv1.PrometheusRule, error) {
 	client := initKubeClient()
 
 	prometheusRule := a.CompilePrometheusRule()
 
 	res, err := client.Resource(monitoringv1.SchemeGroupVersion.WithResource("prometheusrules")).Namespace(a.GetNamespace()).
 		Get(context.Background(), prometheusRule.GetName(), metav1.GetOptions{})
-
 	if err != nil {
-		if errors.IsNotFound(err) {
-			CreateAlerts(a)
-			return
-		}
-		panic(err)
+		return monitoringv1.PrometheusRule{}, fmt.Errorf("failed to get prometheusrule: %v", err)
 	}
 
 	existingPrometheusRuleJson, err := json.Marshal(res)
 	if err != nil {
-		panic(err)
+		return monitoringv1.PrometheusRule{}, fmt.Errorf("failed to marshal unstructured prometheusrule: %v", err)
 	}
 
 	existingPrometheusRule := monitoringv1.PrometheusRule{}
 	json.Unmarshal(existingPrometheusRuleJson, &existingPrometheusRule)
+	if err != nil {
+		return monitoringv1.PrometheusRule{}, fmt.Errorf("failed to unmarshal prometheusrule: %v", err)
+	}
+
+	return existingPrometheusRule, nil
+}
+
+func UpsertAlerts(a SLOAlert) {
+	existingPrometheusRule, err := getPrometheusRule(a)
+
+	if err != nil && errors.IsNotFound(err) {
+		panic(err)
+	}
+
+	prometheusRule := a.CompilePrometheusRule()
 
 	if !prometheusRuleNeedsUpdate(existingPrometheusRule, prometheusRule) {
 		fmt.Println("PrometheusRule up to date.")
@@ -110,22 +140,13 @@ func UpsertAlerts(a SLOAlert) {
 	}
 	fmt.Println("PrometheusRule needs an update.")
 
-	unstructuredPrometheusRule := unstructured.Unstructured{}
-	json.Unmarshal(([]byte)(a.CompilePrometheusRuleString()), &unstructuredPrometheusRule)
-	err = client.Resource(monitoringv1.SchemeGroupVersion.WithResource("prometheusrules")).Namespace(a.GetNamespace()).
-		Delete(context.Background(), prometheusRule.GetName(), metav1.DeleteOptions{})
-	fmt.Println("PrometheusRule deleted.")
-
-	if err != nil {
-		panic(err)
-	}
-
+	DeleteAlerts(a)
 	CreateAlerts(a)
 }
 
 func prometheusRuleNeedsUpdate(old, new monitoringv1.PrometheusRule) bool {
 
-	if old.Labels["sloburn.org/version"] != new.Labels["sloburn.org/version"] {
+	if old.Labels["sloburn.org/commit"] != new.Labels["sloburn.org/commit"] {
 		return true
 	}
 
