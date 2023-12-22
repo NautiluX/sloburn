@@ -128,7 +128,6 @@ Output:
     ]
   }
 }
-
 ```
 
 ## Example: Deploying Alerts to Kubernetes Directly

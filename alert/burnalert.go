@@ -85,7 +85,7 @@ func (a *BurnAlert) compileQuery(query, window string) string {
 }
 
 func (a *BurnAlert) compileSLIQuery(window string) string {
-	return a.compileQuery(a.QueryGood+"/"+a.QueryValid, window)
+	return a.compileQuery("1-("+a.QueryGood+"/"+a.QueryValid+")", window)
 }
 
 func (a *BurnAlert) CompileAlertExpression(windowLong, windowShort string) string {
